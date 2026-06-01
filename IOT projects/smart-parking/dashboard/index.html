@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Smart Parking System</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   #111827;
+    --border:    #1e2d45;
+    --accent:    #00d4ff;
+    --green:     #00ff88;
+    --red:       #ff3c5a;
+    --yellow:    #ffc94a;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --glow-c:    rgba(0,212,255,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,212,255,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(0,212,255,0.02) 40px, rgba(0,212,255,0.02) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,212,255,0.02) 40px, rgba(0,212,255,0.02) 41px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), #0066ff);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .logo h1 { font-size: 22px; font-weight: 700; letter-spacing: 1px; color: var(--accent); }
+  .logo p  { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+  .status-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .status-pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    animation: none;
+  }
+  .status-pill.online .dot {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 8px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .stat-card .sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-card.earnings .value { color: var(--yellow); }
+  .stat-card.free    .value  { color: var(--green); }
+  .stat-card.occupied .value { color: var(--red); }
+  .stat-card.total .value    { color: var(--accent); }
+
+  /* ── Main grid ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Section ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-header h2 { font-size: 15px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+  .section-body { padding: 20px; }
+
+  /* ── Slot cards ── */
+  .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  .slot-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    transition: all .3s;
+    background: rgba(255,255,255,0.02);
+  }
+  .slot-card.occupied {
+    border-color: var(--red);
+    background: rgba(255,60,90,0.05);
+    box-shadow: 0 0 20px rgba(255,60,90,0.1);
+  }
+  .slot-card.free {
+    border-color: var(--green);
+    background: rgba(0,255,136,0.03);
+    box-shadow: 0 0 20px rgba(0,255,136,0.05);
+  }
+
+  .slot-number {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--muted); margin-bottom: 12px;
+  }
+  .slot-icon { font-size: 36px; margin-bottom: 12px; }
+  .slot-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 100px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .slot-card.occupied .slot-status-badge { background: rgba(255,60,90,0.2); color: var(--red); }
+  .slot-card.free     .slot-status-badge { background: rgba(0,255,136,0.15); color: var(--green); }
+
+  .slot-vehicle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px; font-weight: 600;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .slot-duration { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .slot-toll {
+    font-size: 18px; font-weight: 700; color: var(--yellow);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* ── Vehicle Input Panel ── */
+  .vehicle-panel { display: flex; flex-direction: column; gap: 16px; }
+
+  .input-group label {
+    display: block; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--muted); margin-bottom: 8px;
+  }
+  .input-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,212,255,0.1); }
+  .input-group input::placeholder { color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0066ff);
+    color: #fff;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+
+  .toast {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    text-align: center;
+    font-weight: 600;
+  }
+  .toast.success { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); display: block; }
+  .toast.error   { background: rgba(255,60,90,0.15);  color: var(--red);   border: 1px solid rgba(255,60,90,0.3);  display: block; }
+
+  /* Gate status */
+  .gate-status {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-top: 16px;
+  }
+  .gate-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .gate-card .gate-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; }
+  .gate-card .gate-icon  { font-size: 24px; }
+
+  /* ── Toll History ── */
+  .history-table { width: 100%; border-collapse: collapse; }
+  .history-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted);
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+  }
+  .history-table td {
+    padding: 10px 12px; font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table .vehicle { font-family: 'Share Tech Mono', monospace; color: var(--accent); }
+  .history-table .amount  { font-family: 'Share Tech Mono', monospace; color: var(--yellow); font-weight: 700; }
+  .empty-state { text-align: center; padding: 30px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .slots-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🅿</div>
+      <div>
+        <h1>SMART PARKING</h1>
+        <p>Automated Toll & Gate System</p>
+      </div>
+    </div>
+    <div class="status-pill" id="connectionStatus">
+      <div class="dot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card total">
+      <div class="label">Total Slots</div>
+      <div class="value">3</div>
+      <div class="sub">Parking spaces</div>
+    </div>
+    <div class="stat-card free">
+      <div class="label">Available</div>
+      <div class="value" id="freeSlots">—</div>
+      <div class="sub">Free slots</div>
+    </div>
+    <div class="stat-card occupied">
+      <div class="label">Occupied</div>
+      <div class="value" id="occupiedSlots">—</div>
+      <div class="sub">Cars parked</div>
+    </div>
+    <div class="stat-card earnings">
+      <div class="label">Total Earnings</div>
+      <div class="value" id="totalEarnings">₹0</div>
+      <div class="sub">@ ₹5 per 10 sec</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+
+    <!-- Left: Slots -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Parking Slots</h2>
+        <span style="font-size:12px;color:var(--muted);font-family:'Share Tech Mono',monospace" id="lastUpdate">—</span>
+      </div>
+      <div class="section-body">
+        <div class="slots-grid" id="slotsGrid">
+          <!-- Slot cards injected by JS -->
+        </div>
+        <div class="gate-status">
+          <div class="gate-card">
+            <div class="gate-label">Entry Gate</div>
+            <div class="gate-icon" id="entryGateIcon">🔴</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="entryGateText">CLOSED</div>
+          </div>
+          <div class="gate-card">
+            <div class="gate-label">Exit Gate</div>
+            <div class="gate-icon" id="exitGateIcon">🔴</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="exitGateText">CLOSED</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Vehicle Input -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="section">
+        <div class="section-header"><h2>Vehicle Entry</h2></div>
+        <div class="section-body">
+          <div class="vehicle-panel">
+            <div class="input-group">
+              <label>Vehicle Number</label>
+              <input type="text" id="vehicleInput" placeholder="e.g. UK07AB1234" maxlength="12"/>
+            </div>
+            <button class="btn btn-primary" onclick="submitVehicle()">Register Vehicle</button>
+            <div class="toast" id="vehicleToast"></div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.6;">
+              Enter vehicle number <strong style="color:var(--text)">before</strong> the car reaches the entry IR sensor. The system will auto-assign it to the slot.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><h2>Toll Info</h2></div>
+        <div class="section-body" style="font-size:13px;line-height:2;color:var(--muted);">
+          <div>Rate: <strong style="color:var(--yellow)">₹5 per 10 seconds</strong></div>
+          <div>Toll calculated from entry time</div>
+          <div>Auto-stops when car exits slot</div>
+          <div style="margin-top:12px;font-size:11px;color:var(--muted);">Updates every 2 seconds</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toll History -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Toll History</h2>
+      <span style="font-size:12px;color:var(--muted);" id="historyCount">0 records</span>
+    </div>
+    <div class="section-body" style="padding:0;">
+      <div id="historyContainer">
+        <div class="empty-state">No toll records yet. History appears when cars leave.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'http://localhost:8080/api';
+let lastData = null;
+
+async function fetchStatus() {
+  try {
+    const res = await fetch(API + '/status');
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    lastData = data;
+    updateDashboard(data);
+    setOnline(true);
+  } catch (e) {
+    setOnline(false);
+  }
+}
+
+function setOnline(online) {
+  const pill = document.getElementById('connectionStatus');
+  const text = document.getElementById('statusText');
+  if (online) {
+    pill.classList.add('online');
+    text.textContent = 'System Online';
+  } else {
+    pill.classList.remove('online');
+    text.textContent = 'Disconnected';
+  }
+}
+
+function updateDashboard(data) {
+  // Stats
+  document.getElementById('freeSlots').textContent     = data.freeSlots ?? 0;
+  document.getElementById('occupiedSlots').textContent = data.occupiedSlots ?? 0;
+  document.getElementById('totalEarnings').textContent = '₹' + (data.totalEarnings ?? 0).toFixed(2);
+  document.getElementById('lastUpdate').textContent    = new Date().toLocaleTimeString();
+
+  // Slots
+  const grid = document.getElementById('slotsGrid');
+  grid.innerHTML = '';
+  (data.slots || []).forEach(slot => {
+    const card = document.createElement('div');
+    card.className = 'slot-card ' + (slot.occupied ? 'occupied' : 'free');
+    const dur = formatDuration(slot.durationSec || 0);
+    card.innerHTML = `
+      <div class="slot-number">Slot ${slot.slotId.replace('slot','')}</div>
+      <div class="slot-icon">${slot.occupied ? '🚗' : '⬜'}</div>
+      <div class="slot-status-badge">${slot.occupied ? 'Occupied' : 'Free'}</div>
+      ${slot.occupied ? `
+        <div class="slot-vehicle">${slot.vehicleNumber || 'UNKNOWN'}</div>
+        <div class="slot-duration">⏱ ${dur}</div>
+        <div class="slot-toll">₹${(slot.currentToll || 0).toFixed(2)}</div>
+      ` : `<div style="color:var(--muted);font-size:13px;">Available</div>`}
+    `;
+    grid.appendChild(card);
+  });
+
+  // Gate status
+  const entryOpen = data.entryGateOpen === true;
+  const exitOpen  = data.exitGateOpen  === true;
+  document.getElementById('entryGateIcon').textContent = entryOpen ? '🟢' : '🔴';
+  document.getElementById('exitGateIcon').textContent  = exitOpen  ? '🟢' : '🔴';
+  document.getElementById('entryGateIcon').title = entryOpen ? 'OPEN' : 'CLOSED';
+  document.getElementById('exitGateIcon').title  = exitOpen  ? 'OPEN' : 'CLOSED';
+  document.getElementById('entryGateText').textContent = entryOpen ? 'OPEN' : 'CLOSED';
+  document.getElementById('exitGateText').textContent  = exitOpen  ? 'OPEN' : 'CLOSED';
+  document.getElementById('entryGateText').style.color = entryOpen ? 'var(--green)' : 'var(--muted)';
+  document.getElementById('exitGateText').style.color  = exitOpen  ? 'var(--green)' : 'var(--muted)';
+  const history = data.tollHistory || [];
+  document.getElementById('historyCount').textContent = history.length + ' records';
+  const container = document.getElementById('historyContainer');
+  if (history.length === 0) {
+    container.innerHTML = '<div class="empty-state">No toll records yet. History appears when cars leave.</div>';
+  } else {
+    const rows = [...history].reverse().map(r => `
+      <tr>
+        <td class="vehicle">${r.vehicleNumber || 'UNKNOWN'}</td>
+        <td>${r.slotId.replace('slot','Slot ')}</td>
+        <td>${formatDuration(r.durationSeconds || 0)}</td>
+        <td class="amount">₹${(r.tollAmount || 0).toFixed(2)}</td>
+        <td style="color:var(--muted);font-size:12px;">${new Date(r.timestamp).toLocaleTimeString()}</td>
+      </tr>
+    `).join('');
+    container.innerHTML = `
+      <table class="history-table">
+        <thead><tr>
+          <th>Vehicle</th><th>Slot</th><th>Duration</th><th>Toll</th><th>Time</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+}
+
+function formatDuration(seconds) {
+  if (seconds < 60) return seconds + 's';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${s}s`;
+}
+
+async function submitVehicle() {
+  const input = document.getElementById('vehicleInput');
+  const toast = document.getElementById('vehicleToast');
+  const vehicle = input.value.trim().toUpperCase();
+
+  if (!vehicle) {
+    showToast(toast, 'Please enter a vehicle number!', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(API + '/vehicle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vehicleNumber: vehicle })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(toast, `✓ ${vehicle} registered! Drive to entry gate.`, 'success');
+      input.value = '';
+    } else {
+      showToast(toast, 'Failed to register. Try again.', 'error');
+    }
+  } catch (e) {
+    showToast(toast, 'Cannot reach backend server!', 'error');
+  }
+}
+
+function showToast(el, msg, type) {
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// Poll every 2 seconds
+fetchStatus();
+setInterval(fetchStatus, 2000);
+</script>
+</body>
+</html>
